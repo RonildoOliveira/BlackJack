@@ -6,9 +6,6 @@ import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.HeadlessException;
-import java.awt.RenderingHints;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -18,7 +15,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.imageio.ImageIO;
-import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -26,38 +22,40 @@ import javax.swing.JPanel;
 import ufc.rc.bj.conf.Config;
 import ufc.rc.bj.obj.Carta;
 
-public class ClientFrame implements Runnable, ActionListener {
+public class ClientFrame implements Runnable {
 	
-	private Socket socket              = null;
-	private ObjectOutputStream streamOut = null;
-	private ObjectInputStream streamIn = null;
+	private Socket socket;
+	private ObjectOutputStream oOutStream;
+	private ObjectInputStream oInSreamIn;
 	
 	private List<Carta> mao;
 	
 	private JFrame frame;
 	
-	private JButton botaoParar;
-	private JButton botaoPedir;
-	
 	private Thread thread;
 
-	private Painter painter;
+	private Pintor pintor;
 	String line = "";
 	
 	private Font fonte;
 	
-	boolean pedido = false;
-	int jOption;
-	int qtdAs = 0;
+	int jOption; // N Y C
+	int qtdAs = 0; //Algoritmo
 	
-	public ClientFrame(String serverName, int serverPort) throws ClassNotFoundException{
+	//habilita uma unica leitura da soma das cartas do servidor
+	boolean recebeSoma = true;
+	int somaServer;
+	
+	public ClientFrame(String ipServer, int portaServer) throws ClassNotFoundException{
 		
 		System.out.println("Conectando ...");
 
 		try{
-			socket = new Socket(serverName, serverPort);
+			socket = new Socket(ipServer, portaServer);
 			System.out.println("Conectado a " + socket);
-			start();
+			
+			iniciarCliente();
+			
 		}catch(UnknownHostException e){
 			System.out.println("Host não conhecido: " + e.getMessage());
 		}catch(IOException e){
@@ -66,44 +64,37 @@ public class ClientFrame implements Runnable, ActionListener {
 		
 		mao = new ArrayList<Carta>();
 		
-		painter = new Painter();
-		painter.setPreferredSize(
+		pintor = new Pintor();
+		pintor.setPreferredSize(
 				new Dimension(Config.LARGURA, Config.ALTURA));
 		
 		fonte = new Font("Verdana", Font.BOLD, 20);
 		
 		frame = new JFrame();
 		frame.setTitle(Config.NOME);
-		frame.setContentPane(painter);
+		frame.setContentPane(pintor);
 		frame.setSize(Config.LARGURA, Config.ALTURA);
 		frame.setLocationRelativeTo(null);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.setResizable(false);
 			
 		frame.setVisible(true);
-		
-		botaoParar = new JButton("PARAR");
-		botaoPedir = new JButton("PEDIR");
-		
-//		frame.add(botaoParar);
-//		frame.add(botaoPedir);
-		
+				
 		thread = new Thread(this, Config.NOME);
 		thread.start();
 		
 	}
 		
-	public void start() throws IOException
-	{  
-		streamOut = new ObjectOutputStream(socket.getOutputStream());
-		streamIn = new ObjectInputStream(socket.getInputStream());
+	public void iniciarCliente() throws IOException {  
+		oOutStream = new ObjectOutputStream(socket.getOutputStream());
+		oInSreamIn = new ObjectInputStream(socket.getInputStream());
 	}
 	
-	public void stop(){
+	public void finalizarCliente(){
 		try {
-			if (streamOut != null)  streamOut.close();
-			if (streamIn != null)  streamIn.close();
-			if (socket    != null)  socket.close();
+			if (oOutStream != null)	oOutStream.close();
+			if (oInSreamIn != null) oInSreamIn.close();
+			if (socket     != null) socket.close();
 		}
 		catch(IOException e){
 			System.out.println("Erro de Entrada e Saída: "+e.getMessage());
@@ -118,10 +109,8 @@ public class ClientFrame implements Runnable, ActionListener {
 			   && carta.getNome().contains("A")){
 				carta.setValor(1);
 			}
-				
 			soma+=carta.getValor();
 		}
-		
 		return soma;
 	}
 	
@@ -141,32 +130,53 @@ public class ClientFrame implements Runnable, ActionListener {
 				}
 			}
 		}
+		
 		return soma;
 	}
 	
+	@Override
 	public void run() {
-		while (!line.equals(Config.PARAR)){
+		while (!line.equals(Config.PARAR) && mao.size() < 12){
 			jOption = JOptionPane.showConfirmDialog(null, "Pedir Carta ?");
+			
+			if(recebeSoma){
+				try {
+					somaServer = (int)oInSreamIn.readObject();
+				}catch(IOException ioe){
+					System.out.println(ioe.getMessage());
+				}catch (ClassNotFoundException e) {
+					e.printStackTrace();
+				}
+				recebeSoma = false;
+			}
+			
 			
 			if(jOption == 0){ // YES
 				try{  
-					//line = JOptionPane.showInputDialog("Mensagem: ");
-					streamOut.writeObject(line);
-					streamOut.flush();
+					oOutStream.writeObject(line);
+					oOutStream.flush();
 				}catch(IOException e){  
-					System.out.println("Erro de Entrada e Saída: " + e.getMessage());
+					System.err.println("Erro de Entrada e Saída: " + e.getMessage());
 				}
 			}
 			
-			if(jOption == 1) // NO = 1 
+			if(jOption == 1){ // NO = 1
+				mostrarResultado();
+				try {
+					oOutStream.writeObject(Config.PARAR);
+					oOutStream.flush();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 				break;
+			}
 			
 			if(jOption == 2) // Cancel = 2
 				continue;
 			
 			try {
 				//acidionar na mao
-				Carta c = (Carta) streamIn.readObject();
+				Carta c = (Carta) oInSreamIn.readObject();
 				
 				//util no algoritmo de calcular
 				if(c.getNome().contains("A")){
@@ -174,9 +184,10 @@ public class ClientFrame implements Runnable, ActionListener {
 				}
 				
 				mao.add(new Carta(c.getNome(),
-							c.getValor(),
-							ImageIO.read(getClass().getResourceAsStream("/"+c.getNome()+".png"))));
-				painter.repaint();
+							      c.getValor(),
+							      ImageIO.read(getClass().getResourceAsStream("/"+c.getNome()+".png"))));
+				pintor.repaint();
+				
 			} catch (HeadlessException e) {
 				e.printStackTrace();
 			} catch (IOException e) {
@@ -184,23 +195,58 @@ public class ClientFrame implements Runnable, ActionListener {
 			} catch (ClassNotFoundException e) {
 				e.printStackTrace();
 			}
-			
-			pedido = false;
 		}
+	} 
+	
+	private void mostrarResultado(){
+
+			if(calculaPontos() == 21 && somaServer != 21){
+				JOptionPane.showMessageDialog(null, "VOCE VENCEU! "
+						+ "\nSRV " + somaServer+ " x CLI "+calculaPontos());
+			}
+			
+			if(calculaPontos() != 21 && somaServer == 21){
+				JOptionPane.showMessageDialog(null, "VOCE PERDEU! "
+						+ "\nSRV " + somaServer+ " x CLI "+calculaPontos());
+			}
+			
+			if(calculaPontos() < 21){
+				if(somaServer > 21){
+					JOptionPane.showMessageDialog(null, "VOCE VENCEU! "
+							+ "\nSRV " + somaServer+ " x CLI "+calculaPontos());
+				}
+				
+				if(21 - calculaPontos() < 21 - somaServer){
+					JOptionPane.showMessageDialog(null, "VOCE VENCEU! "
+							+ "\nSRV " + somaServer+ " x CLI "+calculaPontos());
+				}else{
+					JOptionPane.showMessageDialog(null, "VOCE PERDEU! "
+							+ "\nSRV " + somaServer+ " x CLI "+calculaPontos());
+				}
+			}
+			
+			if(calculaPontos() > 21){
+				if(somaServer < 21){
+					JOptionPane.showMessageDialog(null, "VOCE PERDEU! "
+							+ "\nSRV " + somaServer+ " x CLI "+calculaPontos());
+				}
+				if(somaServer > 21){
+					JOptionPane.showMessageDialog(null, "EMPATE! " 
+							+ "\nSRV " + somaServer+ " x CLI "+calculaPontos());
+				}
+			}
+			
+			if(somaServer == calculaPontos() && 
+			   somaServer < 21 && calculaPontos() < 21){
+				JOptionPane.showMessageDialog(null, "EMPATE! " 
+						+ "\nSRV " + somaServer+ " x CLI "+calculaPontos());
+			}
 
 	}
-
+	
 	private void render(Graphics g) {
-		g.setColor(Color.BLACK);
-		g.setFont(fonte);
-		Graphics2D g2 = (Graphics2D) g;
-		g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, 
-							RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-		int larguraString = g2.getFontMetrics().stringWidth("PONTOS: "+calculaPontos()+"");
-
-		g.drawString("PONTOS: "+calculaPontos()+"", 
-				Config.LARGURA/2 - larguraString/2,
-				Config.ALTURA - larguraString / 2);
+		
+		imprimirTexto("PONTOS: "+calculaPontos(), g, Color.BLACK, fonte);		
 		
 		//Imprime organizado 6 x 2 (Muito feio)
 		for (int i = 0; i < mao.size(); i++) {
@@ -211,13 +257,22 @@ public class ClientFrame implements Runnable, ActionListener {
 				g.drawImage(mao.get(i).getImagem(), (i-7) + (52*(i-7)) +  146, 160, null);
 			}
 		}
-
+	}
+	
+	void imprimirTexto(String mensagem, Graphics g, Color color, Font font){
+		g.setColor(color);
+		g.setFont(font);
+		Graphics2D g2 = (Graphics2D) g;
+			int tamanho = g2.getFontMetrics().stringWidth(mensagem);
+			g.drawString(mensagem, 
+					Config.LARGURA/2 - tamanho/2,
+					Config.ALTURA - tamanho / 2);
 	}
 
-	private class Painter extends JPanel {
+	private class Pintor extends JPanel {
 		private static final long serialVersionUID = 1L;
 
-		public Painter() {
+		public Pintor() {
 			setFocusable(true);
 			requestFocus();
 			setBackground(Color.WHITE);
@@ -234,28 +289,10 @@ public class ClientFrame implements Runnable, ActionListener {
 	public static void main(String[] args) {
 		try {
 			@SuppressWarnings("unused")
-			ClientFrame client = new ClientFrame("localhost", 9090);
+			ClientFrame client = new ClientFrame(Config.IP, Config.PORTA);
 		} catch (ClassNotFoundException e) {
 			e.printStackTrace();
 		}
 	}
 
-	@Override
-	public void actionPerformed(ActionEvent e) {
-		botaoPedir.addActionListener(new ActionListener() {
-			
-			@Override
-			public void actionPerformed(ActionEvent e) {
-
-			}
-		});
-		
-		botaoParar.addActionListener(new ActionListener() {
-			
-			@Override
-			public void actionPerformed(ActionEvent arg0) {
-
-			}
-		});
-	}
 }

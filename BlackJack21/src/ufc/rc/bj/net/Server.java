@@ -13,72 +13,105 @@ import ufc.rc.bj.conf.Config;
 import ufc.rc.bj.obj.Carta;
 
 public class Server{
-	private Socket          socket   = null;
-	private ServerSocket    server   = null;
-	private ObjectInputStream streamIn =  null;
-	private ObjectOutputStream streamOut =  null;
+	private Socket socket = null;
+	private ServerSocket socketServer = null;
+	private ObjectInputStream oInStream = null;
+	private ObjectOutputStream oOutStreamOut = null;
 
 	private List<Carta> baralho;
-		
-	public Server(int port) throws ClassNotFoundException{
-		try {
-			System.out.println("Binding to port " + port + ", please wait  ...");
-			server = new ServerSocket(port);  
-			System.out.println("Server started: " + server);
-			System.out.println("Waiting for a client ..."); 
-			socket = server.accept();
-			System.out.println("Client accepted: " + socket);
-			open();
-			
-			baralho = new ArrayList<Carta>();
-			
-			iniciaBaralho();
-			
-			boolean done = false;
-			String line = "";
-			
-			while (!done || baralho.isEmpty()){
 
-				try {
-					//recebe
-					line = (String) streamIn.readObject();
-					System.out.println(line);
-					done = line.equals(Config.PARAR);
-				}catch(IOException ioe){
-					done = true;
-				}
-				
+	public Server(int porta) throws ClassNotFoundException{
+		try {
+			System.out.println("[" + porta + "]");
+			socketServer = new ServerSocket(porta);  
+			System.out.println("Iniciando Servidor: " + socketServer);
+			System.out.println("Esperando por cliente ..."); 
+			socket = socketServer.accept();
+			System.out.println("Conexão estabelecida: " + socket);
+
+			//Abre fluxos de entrada e saída
+			abrir();
+
+			baralho = new ArrayList<Carta>();
+			iniciaBaralho();
+
+			//recebe a parada da conexao
+			boolean parado = false; 
+			String comando = "";
+
+			boolean cartasServer = true;
+
+			while (!parado || baralho.isEmpty()){
+
+				if(cartasServer){
 					try {
-						//Sorteia
-						int rm = new Random().nextInt()%baralho.size();
-						if(rm < 0)
-							rm*=-1;
-												
-						streamOut.writeObject(baralho.get(rm));
-						streamOut.flush();
-						baralho.remove(rm);
+						//Envia soma das cartas do servidor
+						oOutStreamOut.writeObject(iniciarMaoServer());
+						oOutStreamOut.flush();
 					} catch (Exception e) {
 
 					}
+					cartasServer = false;
+				}
+
+				try {
+					//recebe
+					comando = (String) oInStream.readObject();
+					parado = comando.equals(Config.PARAR);
+				}catch(IOException ioe){
+					parado = true;
+				}
+
+				try {
+					//Sorteia
+					int rm = new Random().nextInt()%baralho.size();
+					if(rm < 0)
+						rm*=-1;
+
+					oOutStreamOut.writeObject(baralho.get(rm));
+					oOutStreamOut.flush();
+					baralho.remove(rm);
+				} catch (Exception e) {
+
+				}
 
 			}
-			close();
+
+			//fecha fluxos de entrada e saida
+			fechar();
 		}
-		catch(IOException ioe){
-			System.out.println(ioe); 
+		catch(IOException e){
+			System.out.println(e); 
 		}
 	}
 
+	private int iniciarMaoServer(){
+
+		int soma = 0;
+
+		while (soma <= 16){
+
+			int rm = new Random().nextInt()%baralho.size();
+			if(rm < 0)
+				rm*=-1;
+
+			soma+=baralho.get(rm).getValor();
+			baralho.remove(rm);
+		}
+
+		return soma;
+	}
+
 	private void iniciaBaralho() {
-		
+
 		String [] naipes = {"c","h","s","d"};
-		
+
 		for (int i = 0; i < naipes.length; i++) {
 			for (int j = 2; j <= 10; j++) {
 				baralho.add(new Carta(j+""+naipes[i], j));
 			}
 		}
-		
+
 		for (int i = 0; i < naipes.length; i++) {
 			baralho.add(new Carta("K"+naipes[i], 10));
 			baralho.add(new Carta("Q"+naipes[i], 10));
@@ -87,23 +120,23 @@ public class Server{
 		}
 	}
 
-	public void open() throws IOException
+	public void abrir() throws IOException
 	{  
-		streamIn = new ObjectInputStream(socket.getInputStream());
-		streamOut = new ObjectOutputStream(socket.getOutputStream());
+		oInStream = new ObjectInputStream(socket.getInputStream());
+		oOutStreamOut = new ObjectOutputStream(socket.getOutputStream());
 	}
 
-	public void close() throws IOException
+	public void fechar() throws IOException
 	{  
 		if (socket != null)    socket.close();
-		if (streamIn != null)  streamIn.close();
-		if (streamOut != null) streamOut.close();
+		if (oInStream != null)  oInStream.close();
+		if (oOutStreamOut != null) oOutStreamOut.close();
 	}
 
 	public static void main(String args[]) throws ClassNotFoundException{
-		
+
 		@SuppressWarnings("unused")
-		Server server = new Server(9090);
+		Server server = new Server(Config.PORTA);
 	}
 }
 
