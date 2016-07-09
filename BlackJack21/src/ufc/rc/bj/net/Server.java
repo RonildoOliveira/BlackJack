@@ -12,7 +12,7 @@ import java.util.Random;
 import ufc.rc.bj.conf.Config;
 import ufc.rc.bj.obj.Carta;
 
-public class Server{
+public class Server {
 	private Socket socket = null;
 	private ServerSocket socketServer = null;
 	private ObjectInputStream oInStream = null;
@@ -22,6 +22,7 @@ public class Server{
 
 	public Server(int porta) throws ClassNotFoundException{
 		try {
+			
 			System.out.println("[" + porta + "]");
 			socketServer = new ServerSocket(porta);  
 			System.out.println("Iniciando Servidor: " + socketServer);
