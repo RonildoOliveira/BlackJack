@@ -251,10 +251,10 @@ public class ClientFrame implements Runnable {
 		//Imprime organizado 6 x 2 (Muito feio)
 		for (int i = 0; i < mao.size(); i++) {
 			if(i < 6){
-				g.drawImage(mao.get(i).getImagem(), i + (52*i) +  94, 80, null);
+				g.drawImage(mao.get(i).getImagem(), i + (30*i) +  94, 80, null);
 			}
 			else{
-				g.drawImage(mao.get(i).getImagem(), (i-7) + (52*(i-7)) +  146, 160, null);
+				g.drawImage(mao.get(i).getImagem(), (i-7) + (30*(i-7)) +  146, 160, null);
 			}
 		}
 	}
