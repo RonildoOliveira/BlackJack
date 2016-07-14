@@ -18,7 +18,7 @@ import ufc.rc.bj.conf.Config;
 /**
  * A multithreaded chat room server.  When a client connects the
  * server requests a screen name by sending the client the
- * text "SUBMITNAME", and keeps requesting a name until
+ * text "ADDPLAYER", and keeps requesting a name until
  * a unique one is received.  After a client submits a unique
  * name, the server acknowledges with "NAMEACCEPTED".  Then
  * all messages from that client will be broadcast to all other
@@ -34,7 +34,7 @@ import ufc.rc.bj.conf.Config;
  *
  *     2. The server should do some logging.
  */
-public class ChatServer {
+public class BlackJServidor {
 
     /**
      * The port that the server listens on.
@@ -81,7 +81,8 @@ public class ChatServer {
      * and broadcasting its messages.
      */
     private static class Handler extends Thread {
-        private String name;
+  
+    	private String name;
         private Socket socket;
         private BufferedReader in;
         private PrintWriter out;
@@ -100,7 +101,7 @@ public class ChatServer {
             
         	char naipes [] = {'h','s','d','c'};
         	
-    		for (int i = 2; i < 11; i++) {
+    		for (int i = 2; i < 10; i++) {
     			for (int j = 0; j < naipes.length; j++) {
     				baralho.add(String.valueOf(i)+naipes[j]);	
 				}
@@ -127,7 +128,7 @@ public class ChatServer {
                 // checking for the existence of a name and adding the name
                 // must be done while locking the set of names.
                 while (true) {
-                    out.println("SUBMITNAME");
+                    out.println("ADDPLAYER");
                     name = in.readLine();
                     if (name == null) {
                         return;
@@ -143,7 +144,9 @@ public class ChatServer {
                 // Now that a successful name has been chosen, add the
                 // socket's print writer to the set of all writers so
                 // this client can receive broadcast messages.
-                out.println("NAMEACCEPTED");
+                
+                //out.println("NAMEACCEPTED");
+                
                 writers.add(out);
 
                 // Accept messages from this client and broadcast them.
@@ -165,7 +168,7 @@ public class ChatServer {
                     		n*=-1;
                     	
                     	carta = baralho.get(n);
-                        out.println("MESSAGE "+carta);
+                        out.println("BEGIN"+carta);
                     	baralho.remove(carta);
                     	
                     }
@@ -178,18 +181,20 @@ public class ChatServer {
                         JOptionPane.showMessageDialog(null,input.substring(5));
                         parados.add(input.substring(5));
                         
-                        //sortear uma mao para o servidor
-                        for (int i = 0; i < 3; i++) {
-                        	int n = new Random().nextInt()%baralho.size();
-                        	if(n<0)
-                        		n*=-1;
-                        	
-                        	carta = baralho.get(n);
-                            maoServer.add(carta);
-                            
-                        	baralho.remove(carta);
-						}
+                        out.println("FIM "+"ta bom");
                         
+                        //sortear uma mao para o servidor
+//                        for (int i = 0; i < 3; i++) {
+//                        	int n = new Random().nextInt()%baralho.size();
+//                        	if(n<0)
+//                        		n*=-1;
+//                        	
+//                        	carta = baralho.get(n);
+//                            maoServer.add(carta);
+//                            
+//                        	baralho.remove(carta);
+//						}
+//                        
                         //busco o nome e removo == null
                         for (String n : names) {
 							if(n.equals(input.substring(5))){

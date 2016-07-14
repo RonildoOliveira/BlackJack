@@ -22,7 +22,7 @@ import javax.swing.JPanel;
 import ufc.rc.bj.conf.Config;
 import ufc.rc.bj.obj.Carta;
 
-public class ClientFrame implements Runnable {
+public class Client implements Runnable {
 	
 	private Socket socket;
 	private ObjectOutputStream oOutStream;
@@ -46,7 +46,7 @@ public class ClientFrame implements Runnable {
 	boolean recebeSoma = true;
 	int somaServer;
 	
-	public ClientFrame(String ipServer, int portaServer) throws ClassNotFoundException{
+	public Client(String ipServer, int portaServer) throws ClassNotFoundException{
 		
 		System.out.println("Conectando ...");
 
@@ -289,7 +289,7 @@ public class ClientFrame implements Runnable {
 	public static void main(String[] args) {
 		try {
 			@SuppressWarnings("unused")
-			ClientFrame client = new ClientFrame(Config.IP, Config.PORTA);
+			Client client = new Client(Config.IP, Config.PORTA);
 		} catch (ClassNotFoundException e) {
 			e.printStackTrace();
 		}
