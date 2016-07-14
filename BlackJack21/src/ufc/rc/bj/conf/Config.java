@@ -4,7 +4,7 @@ public class Config {
 
 	public static final String NOME = "BLACKJACK";
 	
-	public static final int PORTA = 65378;
+	public static final int PORTA = 65376;
 	public static final String IP = "192.168.1.10";
 	//public static final String IP = "localhost";
 	

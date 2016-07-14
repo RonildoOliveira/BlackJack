@@ -27,41 +27,40 @@ import ufc.rc.bj.obj.Carta;
 
 
 public class BlackJCliente extends Thread {
-
-	static List<String> mao;
 	
-	List<Carta> minhaMao;
+	private List<Carta> minhaMao;
 	
-	Socket socket;
-	BufferedReader in;
-	PrintWriter out;
+	private Socket socket;
+	private BufferedReader in;
+	private PrintWriter out;
 	
-	String nomeUsuario = getNome();
+	private String nomeUsuario = getNome();
 	
-	JFrame frame = new JFrame(nomeUsuario);
+	private JFrame frame;
 
 	private Font fonte;
 
-	JButton btPedir = new JButton("PEDIR");
-	JButton btParar = new JButton("PARAR");
+	private JButton btPedir;
+	private JButton btParar;
 
-	Pintor pintor;
-	int pontosServidor;
+	private Pintor pintor;
+	private int pontosServidor;
 	
-	int quantidadeAses = 0; //Algoritmo
+	private int quantidadeAses = 0; //Algoritmo
 	
 	public BlackJCliente() {
 		
 		minhaMao = new ArrayList<Carta>();
-		mao = new ArrayList<String>();
-
-		fonte = new Font("Verdana", Font.BOLD, 20);
 
 		// Layout GUI
 		pintor = new Pintor();
 		pintor.setPreferredSize(
 				new Dimension(Config.LARGURA, Config.ALTURA));
 
+		frame = new JFrame(nomeUsuario);
+		btPedir = new JButton("PEDIR");
+		btParar = new JButton("PARAR");
+		
 		frame.setContentPane(pintor);
 		frame.setSize(Config.LARGURA, Config.ALTURA);
 		frame.setLocationRelativeTo(null);
@@ -70,6 +69,8 @@ public class BlackJCliente extends Thread {
 
 		frame.getContentPane().add(btPedir);
 		frame.getContentPane().add(btParar);
+		
+		fonte = new Font("Verdana", Font.BOLD, 20);
 		
 		frame.pack();
 
@@ -93,8 +94,6 @@ public class BlackJCliente extends Thread {
 				out.println(Config.PARAR);
 				out.flush();
 				
-				//decidePartida();
-				
 				btPedir.setEnabled(false);
 			}
 		});
@@ -107,7 +106,7 @@ public class BlackJCliente extends Thread {
 		return JOptionPane.showInputDialog(
 				frame,
 				"Nome:",
-				"Qual o seu nome?",
+				"Qual o Seu Nome?",
 				JOptionPane.PLAIN_MESSAGE);
 	}
 
@@ -126,10 +125,8 @@ public class BlackJCliente extends Thread {
 		//Pega duas cartas
 		try {
 			String linha = in.readLine();
-			mao.add(linha.substring(5));
 			minhaMao.add(gerarCarta(linha.substring(5)));
 			linha = in.readLine();
-			mao.add(linha.substring(6));
 			minhaMao.add(gerarCarta(linha.substring(6)));
 		} catch (IOException e1) {
 			e1.printStackTrace();
@@ -150,8 +147,6 @@ public class BlackJCliente extends Thread {
 			
 			//servidor envia uma carta
 			if (line.contains("BEGIN")) {
-				mao.add(line.substring(6));
-				
 				//cria o objeto carta na lista
 				minhaMao.add(gerarCarta(line.substring(6)));
 				
@@ -217,15 +212,17 @@ public class BlackJCliente extends Thread {
 		
 		imprimirTexto("PONTOS: "+calculaPontos(), g, Color.WHITE, fonte);		
 
-		for (int i = 0; i < mao.size(); i++) {
+		for (int i = 0; i < minhaMao.size(); i++) {
 			if(i < 6){
 				g.drawImage(
-						ImageIO.read(getClass().getResourceAsStream("/"+mao.get(i)+".png")),
+						ImageIO.read(getClass().
+								getResourceAsStream("/"+minhaMao.get(i).getNome()+".png")),
 						i + (30*i) +  150, 100, null);
 			}
 			else{
 				g.drawImage(
-						ImageIO.read(getClass().getResourceAsStream("/"+mao.get(i)+".png")),
+						ImageIO.read(getClass().
+								getResourceAsStream("/"+minhaMao.get(i).getNome()+".png")),
 						(i-7) + (30*(i-7)) +  180, 180, null);
 			}
 		}
