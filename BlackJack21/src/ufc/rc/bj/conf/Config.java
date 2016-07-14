@@ -14,8 +14,6 @@ public class Config {
 	public static final String PARAR = "Q";
 	public static final String PEDIR = "P";
 	
-	public static final String FIM = "FIM";
-	
 	public static final String EMP = "EMPATE";
 	public static final String GAN = "GANHOU";
 	public static final String PER = "PERDEU";
